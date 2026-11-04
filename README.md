@@ -22,17 +22,28 @@
 
 ## 安装
 
-### 1. 放到 profile 里
+### 1. 装插件
 
-把整个 `dsh-dafeiyu-pet` 目录复制到：
+**方式一：从 npm（推荐）**
 
+```bash
+dsh plugin --profile desktop add dsh-dafeiyu-pet
 ```
-<DSH 数据目录>\profiles\desktop\node_modules\dsh-dafeiyu-pet
+
+或者 DSH 里 **设置 → 插件 → 添加插件**，搜 `dsh-dafeiyu-pet`。
+
+**方式二：从 GitHub**
+
+```bash
+dsh plugin --profile desktop add github:lilulj/dsh-dafeiyu-pet
 ```
 
-例如本机是 `E:\llmood\dsh\profiles\desktop\node_modules\dsh-dafeiyu-pet`。
+**方式三：手动**
 
-> 目录里要包含 `assets/`、`runtime/`、`lib/`、`index.js`、`package.json`。
+把整个 `dsh-dafeiyu-pet` 目录复制到 `<DSH 数据目录>\profiles\desktop\node_modules\` 下。
+
+> 第一次启动会自动下载约 580MB 素材（104 个动作 + 桌宠运行时），日志里有进度，只下一次。
+> 如果下载卡住，确认代理是开着的——插件用系统 `curl` 下载，会自动走系统代理。
 
 ### 2. 禁用官方桌宠
 
@@ -55,6 +66,8 @@
     - id: dafeiyu-pet
       name: dsh-dafeiyu-pet
 ```
+
+> 用 `dsh plugin add` 装的话，这一步 DSH 通常会自动完成；装完检查一下有没有这条，没有就手动加。
 
 ### 4. 重启 DSH
 
