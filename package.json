@@ -1,6 +1,6 @@
 {
   "name": "dsh-dafeiyu-pet",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "大肥鱼桌宠：自带 104 个动作与语音的独立 DSH 插件，不依赖 dsh-dafeiyu",
   "type": "module",
   "main": "./index.js",
