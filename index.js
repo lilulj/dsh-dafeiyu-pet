@@ -18,6 +18,7 @@ import {
 import { startSettingsServer } from './lib/settings-server.js'
 import { hasAssets, installAssets } from './lib/assets.js'
 import { createBalanceQuery, balanceSummary } from './lib/balance.js'
+import { warnIfConflicting } from './lib/selfcheck.js'
 
 export const name = 'dafeiyu-pet'
 // settings 必须声明：cordis 不允许未 inject 就用 `ctx.settings` 这种属性访问，
@@ -100,6 +101,7 @@ export async function apply(ctx, rawConfig = {}) {
 
   // npm 包里不含 600MB 素材，首次启动才下。下载期间桌宠不出现，
   // 工具照常注册（调用会失败，日志里说清楚原因）。
+  warnIfConflicting(logger)
   if (hasAssets()) {
     helper.start()
   } else {
