@@ -30,6 +30,8 @@ const z = await loadSchemastery(console)
 export const Config = !z ? undefined : z.object({
   /** 总开关：关掉后不启动 helper，桌宠不出现 */
   enabled: z.boolean().default(true).extra('volatile', true),
+  /** 她在提示词和工具描述里被怎么称呼（窗口标题/气泡主文案是 helper 内置的，改不了） */
+  petName: z.string().default('大肥鱼').extra('volatile', true),
   /** 动作延时（毫秒）：等回合结束的庆祝动画放完再播，否则会被它盖掉 */
   actionDelayMs: z.natural().default(4500).extra('volatile', true),
   /** 待机活跃度：quiet / normal / lively */
@@ -224,10 +226,11 @@ function registerTools({ tools, logger, config, helper }) {
   // 模型偶尔一轮里连调好几个；延时播放的设计是「回合结束后播一个」，
   // 后一次调用直接顶掉前一次，免得前面几次白跑还刷日志。
   let pendingPlayTimer = null
+  const who = String(config.petName || '大肥鱼')
 
   tools.register({
     name: 'dafeiyu_play_action',
-    description: '让桌面上的大肥鱼做一个动作。回完话之后调用一次，让她的动作和你说的话对上。'
+    description: `让桌面上的${who}做一个动作。回完话之后调用一次，让她的动作和你说的话对上。`
       + '挑语义最接近的那个；实在没有合适的就选 tail 或 ext_happy。\n' + ACTION_HINT,
     parameters: {
       type: 'object',
@@ -276,7 +279,7 @@ function registerTools({ tools, logger, config, helper }) {
 
   tools.register({
     name: 'dafeiyu_speak',
-    description: '用大肥鱼的声音念一句话：桌面端直接在电脑上念，QQ 会话里发成一条语音条。',
+    description: `用${who}的声音念一句话：桌面端直接在电脑上念，QQ 会话里发成一条语音条。`,
     parameters: {
       type: 'object',
       properties: {
@@ -322,14 +325,18 @@ function registerActionGuidance(ctx, logger) {
     const register = () => systemPrompt.section({
       name: 'dafeiyu:action-guidance',
       order: 150,
-      text: [
-        '桌面上的大肥鱼（蓝色鲸鱼娘）会跟着你说话做动作。',
-        '每次回复主人时调用一次 dafeiyu_play_action，clip 从枚举里挑和内容最贴的：'
-          + '聊吃的选对应菜名、被夸选 ext_shy/ext_happy、加班说 ext_work_tap/ext_coding、'
-          + '过节选节日类、要她撒娇选 ext_angry/ext_shy，实在没贴切的用 tail。',
-        '想让她出声就调 dafeiyu_speak，桌面端 channel 填 local，QQ 会话填 qq。',
-        '纯技术执行、完全没有情绪的时候可以跳过。不要在回复里提工具名。',
-      ].join('\n'),
+      // 用函数：每轮装配提示时读最新配置，改名字不用重启
+      text: () => {
+        const name = String(currentConfig().petName || '大肥鱼')
+        return [
+          `桌面上的${name}（蓝色鲸鱼娘）会跟着你说话做动作。`,
+          '每次回复主人时调用一次 dafeiyu_play_action，clip 从枚举里挑和内容最贴的：'
+            + '聊吃的选对应菜名、被夸选 ext_shy/ext_happy、加班说 ext_work_tap/ext_coding、'
+            + '过节选节日类、要她撒娇选 ext_angry/ext_shy，实在没贴切的用 tail。',
+          '想让她出声就调 dafeiyu_speak，桌面端 channel 填 local，QQ 会话填 qq。',
+          '纯技术执行、完全没有情绪的时候可以跳过。不要在回复里提工具名。',
+        ].join('\n')
+      },
     })
     if (typeof ctx.effect === 'function') ctx.effect(register)
     else register()
