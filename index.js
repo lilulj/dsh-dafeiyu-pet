@@ -17,9 +17,12 @@ import {
 } from './lib/config-store.js'
 import { startSettingsServer } from './lib/settings-server.js'
 import { hasAssets, installAssets } from './lib/assets.js'
+import { createBalanceQuery, balanceSummary } from './lib/balance.js'
 
 export const name = 'dafeiyu-pet'
-export const inject = ['tools', 'systemPrompt']
+// settings 必须声明：cordis 不允许未 inject 就用 `ctx.settings` 这种属性访问，
+// 余额查询里会读 ctx.settings.describe() 找 provider 配置。
+export const inject = ['tools', 'systemPrompt', 'settings']
 
 // schemastery 拿不到时为 null —— 插件照常加载，只是设置页降级（见 lib/hostdeps.js）
 const z = await loadSchemastery(console)
@@ -50,6 +53,8 @@ export const Config = !z ? undefined : z.object({
   qqAppSecret: z.string().default('').extra('volatile', true),
   /** 收语音条的用户 openid（不是 QQ 号） */
   qqOpenId: z.string().default('').extra('volatile', true),
+  /** 空闲时气泡底部的常驻文案；留空会导致气泡框不显示 */
+  idleSummary: z.string().default('DSH · 待命中').extra('volatile', true),
 })
 
 const PET_CONTROL = process.env.DAFEIYU_PET_CONTROL_PORT
@@ -151,6 +156,45 @@ export async function apply(ctx, rawConfig = {}) {
     openLabel: '打开 DSH',
   })
 
+  // 气泡框只在「有内容」时才画：临时提示会过期，任务卡要 tasks≥2，
+  // 而 balance_summary 是唯一不会过期的。官方桌宠靠余额撑起这一格。
+  // 有 DeepSeek 凭据就显示真实余额，查不到就退回一句常驻文案（否则气泡整个消失）。
+  const queryBalance = createBalanceQuery(ctx)
+  let balanceTimer
+  const idleText = String(config.idleSummary || 'DSH · 待命中')
+  const postBalance = (summary) => {
+    helper.send({ protocolVersion: 1, kind: 'balance', timestamp: Date.now(), summary })
+  }
+  const refreshBalance = async () => {
+    // 探测本身也要防抛：cordis 对未 inject 的服��，连 ctx.get 都可能报错，
+    // 而探测一旦抛错就会把真正的错误日志吞掉（上一轮就是这么丢的）。
+    const probe = (name) => { try { return ctx.get?.(name) ? '有' : '无' } catch { return '拒' } }
+    logger.info?.(`dafeiyu-pet: 开始查询余额 | settings=${probe('settings')} credentials=${probe('credentials')} account=${probe('deepseekAccount')} llm=${probe('llm')}`)
+    try {
+      // account.getBalance() 在有些 host 上会一直挂着，必须自己设超时
+      const snapshot = await Promise.race([
+        queryBalance('auto'),
+        new Promise((_, reject) => { setTimeout(() => reject(new Error('查询超时 10s')), 10_000) }),
+      ])
+      logger.info?.(`dafeiyu-pet: 余额快照 ${JSON.stringify(snapshot).slice(0, 160)}`)
+      const text = balanceSummary({ status: 'ok', balances: snapshot.balances, source: snapshot.source })
+      if (text) {
+        postBalance(text)
+        logger.info?.(`dafeiyu-pet: 余额 ${text}`)
+        return
+      }
+      logger.warn?.(`dafeiyu-pet: 余额返回了空摘要，用待命文案顶上`)
+    } catch (error) {
+      logger.warn?.(`dafeiyu-pet: 余额查询失败：${error?.message || String(error)}`)
+    }
+    postBalance(idleText)
+  }
+  // 先发保底文案，气泡立刻有内容；查到真余额再覆盖
+  postBalance(idleText)
+  refreshBalance()
+  balanceTimer = setInterval(refreshBalance, 60_000)
+  balanceTimer.unref?.()
+
   const tools = ctx.get('tools')
   if (!tools?.register) {
     logger.warn('dafeiyu-pet: tools 服务不可用，动作/语音工具未注册')
@@ -168,6 +212,7 @@ export async function apply(ctx, rawConfig = {}) {
     for (const off of unsubscribers) {
       try { off?.() } catch {}
     }
+    if (balanceTimer) clearInterval(balanceTimer)
     try { settingsServer?.close?.() } catch {}
     helper.stop()
   })
