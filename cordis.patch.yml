@@ -1,0 +1,8 @@
+# dsh-dafeiyu-pet bundle patch
+#
+# 独立的桌宠插件：自带 helper 与动作素材，不依赖 dsh-dafeiyu。
+# 装载前请确认官方 dsh-dafeiyu 已禁用，否则屏幕上会出现两只。
+
+- insert:
+    - id: dafeiyu-pet
+      name: dsh-dafeiyu-pet

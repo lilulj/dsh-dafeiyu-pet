@@ -1,0 +1,6 @@
+# 600MB 素材不打进仓库，放 Release 附件（见 README 的下载机制）
+assets/
+runtime/
+node_modules/
+*.tar.gz
+*.log

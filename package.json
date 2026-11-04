@@ -1,0 +1,53 @@
+{
+  "name": "dsh-dafeiyu-pet",
+  "version": "1.0.0",
+  "description": "大肥鱼桌宠：自带 104 个动作与语音的独立 DSH 插件，不依赖 dsh-dafeiyu",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "ASSET_LICENSE.md"
+  ],
+  "dependencies": {
+    "msedge-tts": "^2.1.1"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "assets": {
+      "url": "https://github.com/lilulj/dsh-dafeiyu-pet/releases/download/v1.0.0/dafeiyu-pet-assets-1.0.0.tar.gz"
+    }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "cordis",
+    "desktop-pet",
+    "dafeiyu",
+    "大肥鱼",
+    "桌宠"
+  ],
+  "author": "lilulj",
+  "homepage": "https://github.com/lilulj/dsh-dafeiyu-pet",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lilulj/dsh-dafeiyu-pet.git"
+  },
+  "license": "MIT"
+}
